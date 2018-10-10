@@ -25,8 +25,8 @@ class CamCap{
                 std::cout << "Device 0 not openned...\n";
             }
 
-            if( !vd.set_frame_size(1280,480) ) {
-                printf("Frame size [1280x480] is not avaliable!\n");
+            if( !vd.set_frame_size(320,240) ) {
+                printf("Frame size is not avaliable!\n");
             }
 
             vd.get_image_dimension(&w, &h);
