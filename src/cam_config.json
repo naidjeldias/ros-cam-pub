@@ -1,0 +1,33 @@
+{
+    "config":[
+        {
+            "name":"Focus, Auto",
+            "id": 10094860,
+            "value":0,
+            "type": 2
+        },
+        {
+            "name":"Focus (absolute)",
+            "id": 10094858,
+            "value":0,
+            "type":1
+        },
+        {
+            "name":"Exposure, Auto",
+            "id": 10094849,
+            "value":1,
+            "type":3
+        },
+        {
+            "name":"Exposure (Absolute)",
+            "id": 10094850,
+            "value": 39.0,
+            "type":1
+        }
+    ],
+
+    "cam_prop":{
+        "fx":"160",
+        "fy":"120"
+    }
+}
