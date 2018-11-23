@@ -43,16 +43,12 @@ class CamCap{
             vd.close_device();
         }
 
-        void CamConfig(){
+        void CamConfig(std::string file_path){
 
             // enum control default
             struct v4l2_queryctrl qctrl;
-
-            if( !vd.set_frame_size(640,480) ) {
-                std::cout << "Frame size is not avaliable!\n";
-            }
     
-            if(!loadFIle()){
+            if(!loadFIle(file_path)){
                 std::cout << "Can not open file\n";
             }else{
                 auto configArray = configs["config"];
@@ -75,11 +71,12 @@ class CamCap{
 
         }
 
-        bool loadFIle(){
+        bool loadFIle(std::string file_dir){
             try {
-                string file_path =  ros::package::getPath("cam_pub");
-                file_path = file_path+"/src/cam_config.json";
-                ifstream file(file_path);
+                string ros_path =  ros::package::getPath("cam_pub");
+                // ros_path = ros_path+"/src/cam_config.json";
+                ros_path = ros_path+file_dir;
+                ifstream file(ros_path);
                 if (file.is_open()) {
                     file >> configs;
                     file.close();
@@ -93,6 +90,12 @@ class CamCap{
 
 
         void grabMonoImage(){
+
+            if( !vd.set_frame_size(640,480)) {
+                std::cout << "Frame size is not avaliable!\n";
+            }
+
+            CamConfig("/src/cam_config.json");
 
             int rate = 30;
 
@@ -142,6 +145,79 @@ class CamCap{
 
         }
 
+        void grabStereoImage(){
+
+            if( !vd.set_frame_size(1280,480)) {
+                std::cout << "Frame size is not avaliable!\n";
+            }
+
+            CamConfig("/src/cam_config_stereo.json");
+
+            int rate = 30;
+
+            std::string img_raw_topic   = "image_raw_color";
+            string left_topic           = "left/" + img_raw_topic;
+            string right_topic          = "right/" + img_raw_topic;
+
+            //create a node handle: it is reference assigned to a new node
+            //every node created must has a reference to create publishers and subscibers
+            ros::NodeHandle n;
+            //create a image_transport publisher with topic "raw_image"
+            image_transport::ImageTransport it_(n);
+            //advertise are used to create Publisher topic name and queue size
+            image_transport::Publisher left_raw_topic   = it_.advertise(left_topic, 1);
+            image_transport::Publisher right_raw_topic  = it_.advertise(right_topic, 1);
+
+            
+            //Define the frequency that message are send. Could be the frame rate of the camera
+            ros::Rate loop_rate(rate); 
+            vd.start();
+
+            while(ros::ok()){//keep spinning loop until user presses Ctrl+c
+
+                ros::Time time;
+                vd.grabRGB(rgb);
+
+                Mat frame(h, w, CV_8UC3, rgb);
+
+                if(frame.empty())
+                    break;
+
+                Mat left_raw_image  = frame(Rect(0, 0, w/2, h)).clone();
+                Mat right_raw_image = frame(Rect(w/2, 0, w/2, h)).clone();
+
+                time = ros::Time::now();
+                publishImage(left_raw_image, left_raw_topic, left_topic, time);
+                time = ros::Time::now();
+                publishImage(right_raw_image, right_raw_topic, right_topic, time);
+
+                ROS_INFO("ImageMsg Sent.");
+
+                //Need to call this function to allow ROS to process incoming messages
+                //Handles the events and returns immediately
+                ros::spinOnce();
+                //Sleep for the rest of the cycle, to enforce the loop rate
+                loop_rate.sleep();
+            }
+            std::cout << "\n";
+            free(rgb);
+        }
+
+        void publishImage(cv::Mat img, image_transport::Publisher &pub_img, string img_frame_id, ros::Time t) {
+            pub_img.publish(imageToROSmsg(img, sensor_msgs::image_encodings::RGB8, img_frame_id, t));
+        }
+
+        sensor_msgs::ImagePtr imageToROSmsg(cv::Mat im, const std::string encodingType, std::string frameId, ros::Time t){
+            cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
+
+            cv_ptr->encoding = encodingType;
+            cv_ptr->header.stamp = t;
+            cv_ptr->header.frame_id = frameId;
+            cv_ptr->image = im;
+
+            return cv_ptr->toImageMsg();
+        }
+
 };
 
 int main(int argc, char **argv)
@@ -165,6 +241,7 @@ int main(int argc, char **argv)
         camcap.grabMonoImage();
     }else if (devtype == "stereo")
     {
+        camcap.grabStereoImage();
         
     }else{
         std::cout << "erro"<< std::endl;
