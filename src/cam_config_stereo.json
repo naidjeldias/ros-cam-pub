@@ -3,7 +3,7 @@
         {
             "name":"Focus, Auto",
             "id": 10094860,
-            "value":0,
+            "value":1,
             "type": 2
         },
         {
@@ -21,9 +21,9 @@
         {
             "name":"Exposure (Absolute)",
             "id": 10094850,
-            "value": 170.0,
+            "value": 489.0,
             "type":1
         }
-    ],
+    ]
 
 }
