@@ -188,6 +188,57 @@ class CamCap{
             return true;
         }
 
+        void grabMonoImage(){
+
+            if( !vd.set_frame_size(640,480)) {
+                std::cout << "Frame size is not avaliable!\n";
+            }
+
+            CamConfig("/src/cam_config.json");
+
+            int rate = 30;
+
+            std::string img_raw_topic   = "image_raw_color";
+            string left_topic           = "left/" + img_raw_topic;
+
+            //create a image_transport publisher with topic "raw_image"
+            image_transport::ImageTransport it_(node_);
+            //advertise are used to create Publisher topic name and queue size
+            image_transport::CameraPublisher image_pub_ = it_.advertiseCamera(left_topic, 1);
+
+            cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
+            //Define the frequency that message are send. Could be the frame rate of the camera
+            ros::Rate loop_rate(rate); 
+            vd.start();
+
+            while(ros::ok()){//keep spinning loop until user presses Ctrl+c
+
+                vd.grabRGB(rgb);
+
+                Mat frame(image_height_, image_width_, CV_8UC3, rgb);
+
+                if(frame.empty())
+                    break;
+
+                ros::Time time = ros::Time::now();
+                //Publish the message
+                publishImage(frame, image_pub_, left_topic, time);
+
+                ROS_INFO("ImageMsg Sent.");
+                ROS_INFO("Subscribers: %d", image_pub_.getNumSubscribers());
+
+                //Need to call this function to allow ROS to process incoming messages
+                //Handles the events and returns immediately
+                ros::spinOnce();
+                //Sleep for the rest of the cycle, to enforce the loop rate
+                loop_rate.sleep();
+            }
+            
+            std::cout << "\n";
+            free(rgb);
+
+        }
+
 
         void grabStereoImage(){
 
@@ -304,7 +355,7 @@ int main(int argc, char **argv)
     CamCap camcap;
 
     if(devtype == "mono"){
-        // camcap.grabMonoImage();
+        camcap.grabMonoImage();
     }else if (devtype == "stereo")
     {
         camcap.grabStereoImage();
