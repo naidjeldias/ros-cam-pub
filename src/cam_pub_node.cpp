@@ -60,32 +60,6 @@ class CamCap{
             node_.getParam("/cam_pub_node/auto_white_balance", auto_white_balance_);
             node_.getParam("/cam_pub_node/white_balance", white_balance_);
 
-
-            // node_.param("brightness", brightness_, -1); //0-255, -1 "leave alone"
-            // node_.param("contrast", contrast_, -1); //0-255, -1 "leave alone"
-            // node_.param("saturation", saturation_, -1); //0-255, -1 "leave alone"
-            // node_.param("sharpness", sharpness_, -1); //0-255, -1 "leave alone"
-            // //node_.param("devType", devtype_, std::string(devType));
-           
-            
-            // // possible values: mmap, read, userptr
-            // // node_.param("io_method", io_method_name_, std::string("mmap"));
-            // node_.param("image_width", image_width_, 640);
-            // node_.param("image_height", image_height_, 480);
-            // node_.param("framerate", framerate_, 30);
-            // // possible values: yuyv, uyvy, mjpeg, yuvmono10, rgb24
-            // node_.param("pixel_format", pixel_format_name_, std::string("rgb"));
-            // // enable/disable autofocus
-            // node_.param("autofocus", autofocus_, false);
-            // node_.param("focus", focus_, -1); //0-255, -1 "leave alone"
-            // // enable/disable autoexposure
-            // node_.param("autoexposure", autoexposure_, false);
-            // node_.param("exposure", exposure_, 100);
-            // node_.param("gain", gain_, -1); //0-100?, -1 "leave alone"
-            // // enable/disable auto white balance temperature
-            // node_.param("auto_white_balance", auto_white_balance_, false);
-            // node_.param("white_balance", white_balance_, 4000);
-
             // load the camera info
             node_.param("camera_frame_id", img_.header.frame_id, std::string("head_camera"));
             node_.param("camera_name", camera_name_, std::string("head_camera"));
