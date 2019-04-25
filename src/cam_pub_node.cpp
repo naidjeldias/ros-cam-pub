@@ -17,8 +17,8 @@ namespace enc = sensor_msgs::image_encodings;
 using namespace std;
 using namespace cv;
 using json = nlohmann::json;
-const char * devname;
-string devtype;
+const char * devname = "/dev/video0";
+const char * devType = "mono";
 
 class CamCap{
     private:
@@ -36,7 +36,7 @@ class CamCap{
         sensor_msgs::Image img_;
 
         //parameters
-        std::string video_device_name_, io_method_name_, pixel_format_name_, camera_name_, camera_info_url_;
+        std::string video_device_name_, io_method_name_, pixel_format_name_, camera_name_, camera_info_url_, devtype_;
         int image_width_, image_height_, framerate_, exposure_, brightness_, contrast_, saturation_, sharpness_, focus_,
             white_balance_, gain_;
         bool autofocus_, autoexposure_, auto_white_balance_;
@@ -44,14 +44,20 @@ class CamCap{
 
 
 
-        CamCap(){
+        CamCap(): node_("~")
+        {
 
              // grab the parameters
-            node_.param("video_device", video_device_name_, std::string(devname));
+            //node_.param("video_device", video_device_name_, std::string(devname));
+            node_.getParam("/cam_pub_node/video_device", video_device_name_);
+            std::cout << "Device name:" << video_device_name_ << std::endl;
             node_.param("brightness", brightness_, -1); //0-255, -1 "leave alone"
             node_.param("contrast", contrast_, -1); //0-255, -1 "leave alone"
             node_.param("saturation", saturation_, -1); //0-255, -1 "leave alone"
             node_.param("sharpness", sharpness_, -1); //0-255, -1 "leave alone"
+            //node_.param("devType", devtype_, std::string(devType));
+            node_.getParam("/cam_pub_node/devType", devtype_);
+            
             // possible values: mmap, read, userptr
             // node_.param("io_method", io_method_name_, std::string("mmap"));
             node_.param("image_width", image_width_, 640);
@@ -130,7 +136,7 @@ class CamCap{
                 
             }
 
-            if (!vd.open_device(devname)) {
+            if (!vd.open_device(video_device_name_.c_str())) {
                 std::cout << "Device not openned...\n";
             }
             
@@ -196,7 +202,7 @@ class CamCap{
 
             CamConfig("/src/cam_config.json");
 
-            int rate = 30;
+            int rate = framerate_;
 
             std::string img_raw_topic   = "image_raw_color";
             string left_topic           = "left/" + img_raw_topic;
@@ -248,28 +254,31 @@ class CamCap{
 
             CamConfig("/src/cam_config_stereo.json");
 
-            int rate = 30;
+            int rate = framerate_;
 
-            std::string img_raw_topic   = "image_raw_color";
-            std::string img_rect_topic   = "image_rect_color";
+            string left_topic           = "/camera/left/";
+            string right_topic          = "/camera/right/";
 
-            string left_topic           = "left/" + img_raw_topic;
-            string right_topic          = "right/" + img_raw_topic;
+            std::string img_raw_topic   = "image_raw";
+            std::string img_rect_topic   = "image_rect";
 
-            string left_rct_topic           = "left/" + img_rect_topic;
-            string right_rct_topic          = "right/" + img_rect_topic;
+            string left_raw_topic_           = left_topic + img_raw_topic;
+            string right_raw_topic_          = right_topic + img_raw_topic;
+
+            string left_rect_topic_           = left_topic + img_rect_topic;
+            string right_rect_topic_          = right_topic + img_rect_topic;
 
             //create a image_transport publisher with topic "raw_image"
             image_transport::ImageTransport it_(node_);
             //advertise are used to create Publisher topic name and queue size
-            image_transport::CameraPublisher left_raw_topic   = it_.advertiseCamera(left_topic, 1);
-            image_transport::CameraPublisher right_raw_topic  = it_.advertiseCamera(right_topic, 1);
+            image_transport::CameraPublisher left_raw_topic   = it_.advertiseCamera(left_raw_topic_, 1);
+            image_transport::CameraPublisher right_raw_topic  = it_.advertiseCamera(right_raw_topic_, 1);
 
-            image_transport::CameraPublisher left_rect_topic   = it_.advertiseCamera(left_rct_topic, 1);
-            image_transport::CameraPublisher right_rect_topic  = it_.advertiseCamera(right_rct_topic, 1);
+            image_transport::CameraPublisher left_rect_topic   = it_.advertiseCamera(left_rect_topic_, 1);
+            image_transport::CameraPublisher right_rect_topic  = it_.advertiseCamera(right_rect_topic_, 1);
 
                 
-                //Define the frequency that message are send. Could be the frame rate of the camera
+            //Define the frequency that message are send. Could be the frame rate of the camera
             ros::Rate loop_rate(rate); 
             vd.start();
 
@@ -298,9 +307,9 @@ class CamCap{
                 publishImage(right_raw_image, right_raw_topic, right_topic, time);
 
                 time = ros::Time::now();
-                publishImage(left_rect_image, left_rect_topic, left_rct_topic, time);
+                publishImage(left_rect_image, left_rect_topic, left_topic, time);
                 time = ros::Time::now();
-                publishImage(right_rect_image, right_rect_topic, right_rct_topic, time);
+                publishImage(right_rect_image, right_rect_topic, right_topic, time);
                 
 
                 ROS_INFO("ImageMsg Sent.");
@@ -339,29 +348,21 @@ class CamCap{
 
 int main(int argc, char **argv)
 {   
+
     //Initialize new ROS node named "cam_node"
     ros::init(argc, argv, "cam_node");
 
-    if(argc < 1 )
-    {
-        cerr << endl << "Usage: rosrun cam_pub cam_pub_node <device_name> <device_type> (mono/stereo)" << endl;        
-        ros::shutdown();
-        return 1;
-    }
-
-    devname = argv[1];
-    devtype = argv[2];
-
     CamCap camcap;
 
-    if(devtype == "mono"){
+    std::cout << "DevType: " << camcap.devtype_ << std::endl;
+
+    if(camcap.devtype_ == "mono"){
         camcap.grabMonoImage();
-    }else if (devtype == "stereo")
+    }else if (camcap.devtype_ == "stereo")
     {
         camcap.grabStereoImage();
         
     }else{
-        std::cout << "erro"<< std::endl;
         cerr  << "Usage: rosrun cam_pub cam_pub_node <device_name> <device_type> (mono/stereo)" << endl;        
     }
 
