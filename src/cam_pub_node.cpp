@@ -8,8 +8,8 @@
 #include <sensor_msgs/fill_image.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <camera_info_manager/camera_info_manager.h>
-#include "vcap/vcap.hpp"
-#include "vcap/device.hpp"
+#include <vcap.hpp>
+#include <device.hpp>
 #include <cstdio>
 #include "json/json.hpp"
 
@@ -368,7 +368,7 @@ int main(int argc, char **argv)
 {   
 
     //Initialize new ROS node named "cam_node"
-    ros::init(argc, argv, "cam_node");
+    ros::init(argc, argv, "pub_node");
 
     CamCap camcap;
 

@@ -35,7 +35,7 @@
 
 #include "../utils/msg.h"
 
-#include "vcap.hpp"
+#include <vcap.hpp>
 
 namespace vcap
 {

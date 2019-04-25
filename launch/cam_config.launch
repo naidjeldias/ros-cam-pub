@@ -1,0 +1,4 @@
+<launch>
+    <node name="cam_config_node" pkg="cam_pub" type="cam_config_node" output="screen"></node>
+
+</launch>

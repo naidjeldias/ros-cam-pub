@@ -27,15 +27,17 @@ link_directories(${V4L2_LIBRARY_DIRS})
 
 set(SOURCE_FILES
     cam_pub_node.cpp
+    cam_config_node.cpp
     vcap/vcap.cpp
     vcap/device.cpp
+    vcap/V4LInterface-aux.cpp
 )
 
 ###################################
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-   #INCLUDE_DIRS include
+   INCLUDE_DIRS include
 )
 
 ###########
@@ -45,7 +47,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  #include
+  include
   ${GTKMM_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
   ${V4L2_INCLUDE_DIRS}
@@ -57,9 +59,8 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node src/cam_pub_node.cpp)
-
 ## Add cpp files as libraries 
-add_library(vcap src/vcap/vcap.cpp src/vcap/device.cpp)
+add_library(vcap src/vcap/vcap.cpp src/vcap/device.cpp src/vcap/V4LInterface-aux.cpp src/vcap/V4LInterface-events.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
@@ -68,6 +69,14 @@ target_link_libraries(${PROJECT_NAME}_node
   ${GTKMM_LIBRARIES}
   ${V4L2_LIBRARIES}
   ${catkin_LIBRARIES}
+)
+add_executable(cam_config_node src/cam_config_node.cpp)
+target_link_libraries(cam_config_node
+  vcap 
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  ${GTKMM_LIBRARIES}
+  ${V4L2_LIBRARIES}
 )
 
 #############
