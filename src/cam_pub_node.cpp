@@ -50,31 +50,41 @@ class CamCap{
              // grab the parameters
             //node_.param("video_device", video_device_name_, std::string(devname));
             node_.getParam("/cam_pub_node/video_device", video_device_name_);
-            std::cout << "Device name:" << video_device_name_ << std::endl;
-            node_.param("brightness", brightness_, -1); //0-255, -1 "leave alone"
-            node_.param("contrast", contrast_, -1); //0-255, -1 "leave alone"
-            node_.param("saturation", saturation_, -1); //0-255, -1 "leave alone"
-            node_.param("sharpness", sharpness_, -1); //0-255, -1 "leave alone"
-            //node_.param("devType", devtype_, std::string(devType));
             node_.getParam("/cam_pub_node/devType", devtype_);
+            node_.getParam("/cam_pub_node/image_width", image_width_);
+            node_.getParam("/cam_pub_node/image_height", image_height_);
+            node_.getParam("/cam_pub_node/autofocus", autofocus_);
+            node_.getParam("/cam_pub_node/focus", focus_);
+            node_.getParam("/cam_pub_node/autoexposure", autoexposure_);
+            node_.getParam("/cam_pub_node/exposure", exposure_);
+            node_.getParam("/cam_pub_node/auto_white_balance", auto_white_balance_);
+            node_.getParam("/cam_pub_node/white_balance", white_balance_);
+
+
+            // node_.param("brightness", brightness_, -1); //0-255, -1 "leave alone"
+            // node_.param("contrast", contrast_, -1); //0-255, -1 "leave alone"
+            // node_.param("saturation", saturation_, -1); //0-255, -1 "leave alone"
+            // node_.param("sharpness", sharpness_, -1); //0-255, -1 "leave alone"
+            // //node_.param("devType", devtype_, std::string(devType));
+           
             
-            // possible values: mmap, read, userptr
-            // node_.param("io_method", io_method_name_, std::string("mmap"));
-            node_.param("image_width", image_width_, 640);
-            node_.param("image_height", image_height_, 480);
-            node_.param("framerate", framerate_, 30);
-            // possible values: yuyv, uyvy, mjpeg, yuvmono10, rgb24
-            node_.param("pixel_format", pixel_format_name_, std::string("rgb"));
-            // enable/disable autofocus
-            node_.param("autofocus", autofocus_, false);
-            node_.param("focus", focus_, -1); //0-255, -1 "leave alone"
-            // enable/disable autoexposure
-            node_.param("autoexposure", autoexposure_, false);
-            node_.param("exposure", exposure_, 100);
-            node_.param("gain", gain_, -1); //0-100?, -1 "leave alone"
-            // enable/disable auto white balance temperature
-            node_.param("auto_white_balance", auto_white_balance_, false);
-            node_.param("white_balance", white_balance_, 4000);
+            // // possible values: mmap, read, userptr
+            // // node_.param("io_method", io_method_name_, std::string("mmap"));
+            // node_.param("image_width", image_width_, 640);
+            // node_.param("image_height", image_height_, 480);
+            // node_.param("framerate", framerate_, 30);
+            // // possible values: yuyv, uyvy, mjpeg, yuvmono10, rgb24
+            // node_.param("pixel_format", pixel_format_name_, std::string("rgb"));
+            // // enable/disable autofocus
+            // node_.param("autofocus", autofocus_, false);
+            // node_.param("focus", focus_, -1); //0-255, -1 "leave alone"
+            // // enable/disable autoexposure
+            // node_.param("autoexposure", autoexposure_, false);
+            // node_.param("exposure", exposure_, 100);
+            // node_.param("gain", gain_, -1); //0-100?, -1 "leave alone"
+            // // enable/disable auto white balance temperature
+            // node_.param("auto_white_balance", auto_white_balance_, false);
+            // node_.param("white_balance", white_balance_, 4000);
 
             // load the camera info
             node_.param("camera_frame_id", img_.header.frame_id, std::string("head_camera"));
@@ -138,6 +148,8 @@ class CamCap{
 
             if (!vd.open_device(video_device_name_.c_str())) {
                 std::cout << "Device not openned...\n";
+            }else{
+                CamConfig();
             }
             
             vd.get_image_dimension(&image_width_, &image_height_);
@@ -149,31 +161,63 @@ class CamCap{
             vd.close_device();
         }
 
-        void CamConfig(std::string file_path){
+        void CamConfig(){
 
             // enum control default
             struct v4l2_queryctrl qctrl;
-    
-            if(!loadFIle(file_path)){
-                std::cout << "Can not open file\n";
-            }else{
-                auto configArray = configs["config"];
-                //std::cout << "Size" << configArray.size();
-                for(const auto &prop : configArray){
-                    //std::cout << "Name" << prop["name"];
-                    int type = prop["type"];
-                    int id = prop["id"];
-                    int value = prop["value"];
-         
-                    qctrl.id = id;                    
-                    qctrl.type = type;
 
-                    if(vcap::set_control(vd.get_fd(), qctrl.id, value) < 0)
-                        std::cout << "ERROR seting "<< prop["name"]<<"\n"; 
+            if( vcap::enum_control_default( vd.get_fd(), &qctrl, true) ) {
+                // printf("\n# Supported controls\n");
+                // printf("----------------------------------\n");
+                do {
+                    // printf("id: %15d; Name: %30s; Type: %5d \n", qctrl.id, qctrl.name, qctrl.type);
+                    std::string sName(reinterpret_cast<char*>(qctrl.name));
+                    if(sName == "Focus, Auto" && autofocus_){
+                        if(vcap::set_control(vd.get_fd(), qctrl.id, autofocus_) < 0)
+                            std::cout << "ERROR seting "<< sName <<"\n";
+                    }
+                    if(sName == "Focus (absolute)" && focus_ >= 0){
+                        if(vcap::set_control(vd.get_fd(), qctrl.id, focus_) < 0)
+                            std::cout << "ERROR seting "<< sName <<"\n";
+                    }
+                    if(sName == "Exposure, Auto" && autoexposure_ ){
+                        if(vcap::set_control(vd.get_fd(), qctrl.id, autoexposure_) < 0)
+                            std::cout << "ERROR seting "<< sName <<"\n";
+                    }
+                    if(sName == "Exposure (Absolute)" && exposure_>=0){
+                        if(vcap::set_control(vd.get_fd(), qctrl.id, exposure_) < 0)
+                            std::cout << "ERROR seting "<< sName <<"\n";
+                    }
+                    if(sName == "White Balance Temperature, Auto" && auto_white_balance_){
+                        if(vcap::set_control(vd.get_fd(), qctrl.id, auto_white_balance_) < 0)
+                            std::cout << "ERROR seting "<< sName <<"\n";
+                    }
 
-                }
-
+                    if(sName == "White Balance Temperature" && white_balance_>=0){
+                        if(vcap::set_control(vd.get_fd(), qctrl.id, white_balance_) < 0)
+                            std::cout << "ERROR seting "<< sName <<"\n";
+                    }
+                } while (vcap::enum_control_default( vd.get_fd(), &qctrl, false) );
             }
+    
+            // if(!loadFIle(file_path)){
+            //     std::cout << "Can not open file\n";
+            // }else{
+            //     auto configArray = configs["config"];
+            //     //std::cout << "Size" << configArray.size();
+            //     for(const auto &prop : configArray){
+            //         //std::cout << "Name" << prop["name"];
+            //         int type = prop["type"];
+            //         int id = prop["id"];
+            //         int value = prop["value"];
+         
+            //         qctrl.id = id;                    
+            //         qctrl.type = type;
+
+            //         if(vcap::set_control(vd.get_fd(), qctrl.id, value) < 0)
+            //             std::cout << "ERROR seting "<< prop["name"]<<"\n"; 
+            //     }
+            // }
 
         }
 
@@ -200,7 +244,7 @@ class CamCap{
                 std::cout << "Frame size is not avaliable!\n";
             }
 
-            CamConfig("/src/cam_config.json");
+            //CamConfig("/src/cam_config.json");
 
             int rate = framerate_;
 
@@ -252,7 +296,7 @@ class CamCap{
                 std::cout << "Frame size is not avaliable!\n";
             }
 
-            CamConfig("/src/cam_config_stereo.json");
+            //CamConfig("/src/cam_config_stereo.json");
 
             int rate = framerate_;
 
