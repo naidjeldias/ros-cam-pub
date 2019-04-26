@@ -41,11 +41,16 @@ class CamCap{
             white_balance_, gain_;
         bool autofocus_, autoexposure_, auto_white_balance_;
         boost::shared_ptr<camera_info_manager::CameraInfoManager> cinfo_;
+        boost::shared_ptr<camera_info_manager::CameraInfoManager> lcinfo_, rcinfo_;
 
 
 
         CamCap(): node_("~")
         {
+            
+
+            std::string file_path = "/src/stereo.yaml"; 
+            string ros_path =  ros::package::getPath("cam_pub");
 
              // grab the parameters
             //node_.param("video_device", video_device_name_, std::string(devname));
@@ -62,23 +67,23 @@ class CamCap{
 
             // load the camera info
             node_.param("camera_frame_id", img_.header.frame_id, std::string("head_camera"));
-            node_.param("camera_name", camera_name_, std::string("head_camera"));
+            node_.param("camera_name", camera_name_, std::string("stereo"));
             node_.param("camera_info_url", camera_info_url_, std::string(""));
             cinfo_.reset(new camera_info_manager::CameraInfoManager(node_, camera_name_, camera_info_url_));
+            lcinfo_.reset(new camera_info_manager::CameraInfoManager(node_, camera_name_, camera_info_url_));
+            rcinfo_.reset(new camera_info_manager::CameraInfoManager(node_, camera_name_, camera_info_url_));
 
             // check for default camera info
-            if (!cinfo_->isCalibrated())
-            {
-            cinfo_->setCameraName(video_device_name_);
-                sensor_msgs::CameraInfo camera_info;
-                camera_info.header.frame_id = img_.header.frame_id;
-                camera_info.width = image_width_;
-                camera_info.height = image_height_;
-                cinfo_->setCameraInfo(camera_info);
-            }
+            // if (!cinfo_->isCalibrated())
+            // {
+            // cinfo_->setCameraName(video_device_name_);
+            //     sensor_msgs::CameraInfo camera_info;
+            //     camera_info.header.frame_id = img_.header.frame_id;
+            //     camera_info.width = image_width_;
+            //     camera_info.height = image_height_;
+            //     cinfo_->setCameraInfo(camera_info);
+            // }
 
-            std::string file_path = "/src/stereo.yaml"; 
-            string ros_path =  ros::package::getPath("cam_pub");
 
             cv::FileStorage fsSettings(ros_path+file_path, cv::FileStorage::READ);
             if(!fsSettings.isOpened())
@@ -103,6 +108,7 @@ class CamCap{
                 int cols_l = fsSettings["LEFT.width"];
                 int rows_r = fsSettings["RIGHT.height"];
                 int cols_r = fsSettings["RIGHT.width"];
+               
 
                 // cout << "K_l = "<< endl << " "  << K_l << endl << endl;
                 // cout << "K_r = "<< endl << " "  << K_r << endl << endl;
@@ -117,8 +123,52 @@ class CamCap{
                     cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,M1l,M2l);
                     cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,M1r,M2r);
                 }
+
+                
+                sensor_msgs::CameraInfo camera_info_;
+
+                camera_info_.header.frame_id = img_.header.frame_id;
+                camera_info_.width = image_width_;
+                camera_info_.height = image_height_;
+                
+                camera_info_.P[0] = P_l.at<double>(0,0); camera_info_.P[1] = P_l.at<double>(0,1); camera_info_.P[2] = P_l.at<double>(0,2); camera_info_.P[3] = P_l.at<double>(0,3);
+                camera_info_.P[4] = P_l.at<double>(1,0); camera_info_.P[5] = P_l.at<double>(1,1); camera_info_.P[6] = P_l.at<double>(1,2); camera_info_.P[7] = P_l.at<double>(1,3);
+                camera_info_.P[8] = P_l.at<double>(2,0); camera_info_.P[9] = P_l.at<double>(2,1); camera_info_.P[10] = P_l.at<double>(2,2); camera_info_.P[11] = P_l.at<double>(2,3);
+
+                camera_info_.K [0] = K_l.at<double>(0,0); camera_info_.K [1] = K_l.at<double>(0,1); camera_info_.K [2] = K_l.at<double>(0,2);
+                camera_info_.K [3] = K_l.at<double>(1,0); camera_info_.K [4] = K_l.at<double>(1,1); camera_info_.K [5] = K_l.at<double>(1,2);  
+                camera_info_.K [6] = K_l.at<double>(2,0); camera_info_.K [7] = K_l.at<double>(2,1); camera_info_.K [8] = K_l.at<double>(2,2);  
+
+                
+                camera_info_.D.push_back(D_l.at<double>(0)); camera_info_.D.push_back(D_l.at<double>(1)); camera_info_.D.push_back(D_l.at<double>(2));
+                camera_info_.D.push_back(D_l.at<double>(3)); camera_info_.D.push_back(D_l.at<double>(4));
+
+
+
+                camera_info_.header.frame_id = img_.header.frame_id;
+                camera_info_.width = image_width_;
+                camera_info_.height = image_height_;
+                
+                camera_info_.P[0] = P_r.at<double>(0,0); camera_info_.P[1] = P_r.at<double>(0,1); camera_info_.P[2] = P_r.at<double>(0,2); camera_info_.P[3] = P_r.at<double>(0,3);
+                camera_info_.P[4] = P_r.at<double>(1,0); camera_info_.P[5] = P_r.at<double>(1,1); camera_info_.P[6] = P_r.at<double>(1,2); camera_info_.P[7] = P_r.at<double>(1,3);
+                camera_info_.P[8] = P_r.at<double>(2,0); camera_info_.P[9] = P_r.at<double>(2,1); camera_info_.P[10] = P_r.at<double>(2,2); camera_info_.P[11] = P_r.at<double>(2,3);
+
+                camera_info_.K [0] = K_r.at<double>(0,0); camera_info_.K [1] = K_r.at<double>(0,1); camera_info_.K [2] = K_r.at<double>(0,2);
+                camera_info_.K [3] = K_r.at<double>(1,0); camera_info_.K [4] = K_r.at<double>(1,1); camera_info_.K [5] = K_r.at<double>(1,2);  
+                camera_info_.K [6] = K_r.at<double>(2,0); camera_info_.K [7] = K_r.at<double>(2,1); camera_info_.K [8] = K_r.at<double>(2,2);  
+
+                
+                camera_info_.D.push_back(D_r.at<double>(0)); camera_info_.D.push_back(D_r.at<double>(1)); camera_info_.D.push_back(D_r.at<double>(2));
+                camera_info_.D.push_back(D_r.at<double>(3)); camera_info_.D.push_back(D_r.at<double>(4));
+
+
+
+                camera_info_.distortion_model = "plumb_bob";
+                rcinfo_->setCameraInfo(camera_info_);
                 
             }
+
+
 
             if (!vd.open_device(video_device_name_.c_str())) {
                 std::cout << "Device not openned...\n";
@@ -173,25 +223,6 @@ class CamCap{
                     }
                 } while (vcap::enum_control_default( vd.get_fd(), &qctrl, false) );
             }
-    
-            // if(!loadFIle(file_path)){
-            //     std::cout << "Can not open file\n";
-            // }else{
-            //     auto configArray = configs["config"];
-            //     //std::cout << "Size" << configArray.size();
-            //     for(const auto &prop : configArray){
-            //         //std::cout << "Name" << prop["name"];
-            //         int type = prop["type"];
-            //         int id = prop["id"];
-            //         int value = prop["value"];
-         
-            //         qctrl.id = id;                    
-            //         qctrl.type = type;
-
-            //         if(vcap::set_control(vd.get_fd(), qctrl.id, value) < 0)
-            //             std::cout << "ERROR seting "<< prop["name"]<<"\n"; 
-            //     }
-            // }
 
         }
 
@@ -246,7 +277,7 @@ class CamCap{
 
                 ros::Time time = ros::Time::now();
                 //Publish the message
-                publishImage(frame, image_pub_, left_topic, time);
+                publishImage(frame, image_pub_, left_topic, time, lcinfo_);
 
                 ROS_INFO("ImageMsg Sent.");
                 ROS_INFO("Subscribers: %d", image_pub_.getNumSubscribers());
@@ -295,6 +326,8 @@ class CamCap{
             image_transport::CameraPublisher left_rect_topic   = it_.advertiseCamera(left_rect_topic_, 1);
             image_transport::CameraPublisher right_rect_topic  = it_.advertiseCamera(right_rect_topic_, 1);
 
+
+
                 
             //Define the frequency that message are send. Could be the frame rate of the camera
             ros::Rate loop_rate(rate); 
@@ -320,14 +353,14 @@ class CamCap{
 
 
                 time = ros::Time::now();
-                publishImage(left_raw_image, left_raw_topic, left_topic, time);
+                publishImage(left_raw_image, left_raw_topic, left_topic, time, lcinfo_);
                 time = ros::Time::now();
-                publishImage(right_raw_image, right_raw_topic, right_topic, time);
+                publishImage(right_raw_image, right_raw_topic, right_topic, time, lcinfo_);
 
                 time = ros::Time::now();
-                publishImage(left_rect_image, left_rect_topic, left_topic, time);
+                publishImage(left_rect_image, left_rect_topic, left_topic, time, rcinfo_);
                 time = ros::Time::now();
-                publishImage(right_rect_image, right_rect_topic, right_topic, time);
+                publishImage(right_rect_image, right_rect_topic, right_topic, time, rcinfo_);
                 
 
                 ROS_INFO("ImageMsg Sent.");
@@ -342,9 +375,10 @@ class CamCap{
             free(rgb);
         }
 
-        void publishImage(cv::Mat img, image_transport::CameraPublisher &pub_img, string img_frame_id, ros::Time t) {
+        void publishImage(cv::Mat img, image_transport::CameraPublisher &pub_img, string img_frame_id, ros::Time t, 
+                                    boost::shared_ptr<camera_info_manager::CameraInfoManager> cinfo) {
             img_.header.frame_id = img_frame_id;
-            sensor_msgs::CameraInfoPtr ci (new sensor_msgs::CameraInfo(cinfo_->getCameraInfo()));
+            sensor_msgs::CameraInfoPtr ci (new sensor_msgs::CameraInfo(cinfo->getCameraInfo()));
             ci -> header.frame_id = img_frame_id;
             ci -> header.stamp    = t;
 
