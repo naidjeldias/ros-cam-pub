@@ -70,6 +70,7 @@ class CamCap{
             node_.getParam("/cam_pub_node/exposure", exposure_);
             node_.getParam("/cam_pub_node/auto_white_balance", auto_white_balance_);
             node_.getParam("/cam_pub_node/white_balance", white_balance_);
+            node_.getParam("/cam_pub_node/framerate", framerate_);
 
             // load the camera info
             // node_.param("camera_frame_id", img_.header.frame_id, std::string("head_camera"));
@@ -114,8 +115,8 @@ class CamCap{
                 int cols_r = fsSettings["RIGHT.width"];
                
 
-                // cout << "K_l = "<< endl << " "  << K_l << endl << endl;
-                // cout << "K_r = "<< endl << " "  << K_r << endl << endl;
+                cout << "K_l = "<< endl << " "  << K_l << endl << endl;
+                cout << "K_r = "<< endl << " "  << K_r << endl << endl;
 
                 if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
                         rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)

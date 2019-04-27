@@ -9,6 +9,7 @@
         <param name="exposure" value="88" />
         <param name="auto_white_balance" value="false" />
         <param name="white_balance" value="4077" />
+        <param name="framerate" value="60" />
     </node>
 
 </launch>
