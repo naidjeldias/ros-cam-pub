@@ -18,8 +18,8 @@ namespace enc = sensor_msgs::image_encodings;
 using namespace std;
 using namespace cv;
 using json = nlohmann::json;
-const char * devname = "/dev/video0";
-const char * devType = "mono";
+// const char * devname = "/dev/video0";
+// const char * devType = "mono";
 
 class CamCap{
     private:
@@ -37,9 +37,10 @@ class CamCap{
         sensor_msgs::Image img_;
 
         //parameters
-        std::string video_device_name_, io_method_name_, pixel_format_name_, camera_name_, camera_info_url_, devtype_;
-        int image_width_, image_height_, framerate_, exposure_, brightness_, contrast_, saturation_, sharpness_, focus_,
-            white_balance_, gain_;
+        std::string io_method_name_, pixel_format_name_, camera_name_, camera_info_url_, devtype_;
+        int image_width_, image_height_, framerate_, brightness_, contrast_, saturation_, sharpness_, focus_,
+             gain_;
+        double white_balance_, exposure_; 
         bool autofocus_, autoexposure_, auto_white_balance_;
         boost::shared_ptr<camera_info_manager::CameraInfoManager> cinfo_;
         boost::shared_ptr<camera_info_manager::CameraInfoManager> lcinfo_, rcinfo_;
@@ -50,105 +51,71 @@ class CamCap{
         cv::Mat K_l, K_r, P_l, P_r, R_l, R_r, D_l, D_r;
 
 
-
-        CamCap(): node_("~")
+        CamCap(const string &strSettingsFile, const string &strDevName): node_("~")
         {
-            
-
-            std::string file_path = "/src/stereo.yaml"; 
-            string ros_path =  ros::package::getPath("cam_pub");
-
-             // grab the parameters
-            //node_.param("video_device", video_device_name_, std::string(devname));
-            node_.getParam("/cam_pub_node/video_device", video_device_name_);
-            node_.getParam("/cam_pub_node/devType", devtype_);
-            node_.getParam("/cam_pub_node/image_width", image_width_);
-            node_.getParam("/cam_pub_node/image_height", image_height_);
-            node_.getParam("/cam_pub_node/autofocus", autofocus_);
-            node_.getParam("/cam_pub_node/focus", focus_);
-            node_.getParam("/cam_pub_node/autoexposure", autoexposure_);
-            node_.getParam("/cam_pub_node/exposure", exposure_);
-            node_.getParam("/cam_pub_node/auto_white_balance", auto_white_balance_);
-            node_.getParam("/cam_pub_node/white_balance", white_balance_);
-            node_.getParam("/cam_pub_node/framerate", framerate_);
-
-            // load the camera info
-            // node_.param("camera_frame_id", img_.header.frame_id, std::string("head_camera"));
-            // node_.param("camera_name", camera_name_, std::string("stereo"));
-            // node_.param("camera_info_url", camera_info_url_, std::string(""));
-
-
-            // check for default camera info
-            // if (!cinfo_->isCalibrated())
-            // {
-            // cinfo_->setCameraName(video_device_name_);
-            //     sensor_msgs::CameraInfo camera_info;
-            //     camera_info.header.frame_id = img_.header.frame_id;
-            //     camera_info.width = image_width_;
-            //     camera_info.height = image_height_;
-            //     cinfo_->setCameraInfo(camera_info);
-            // }
-
-
-            cv::FileStorage fsSettings(ros_path+file_path, cv::FileStorage::READ);
-            if(!fsSettings.isOpened())
-            {
-                cerr << "ERROR: Wrong path to settings" << endl;
-            }else{
-
-                
-                fsSettings["LEFT.K"] >> K_l;
-                fsSettings["RIGHT.K"] >> K_r;
-
-                fsSettings["LEFT.P"] >> P_l;
-                fsSettings["RIGHT.P"] >> P_r;
-
-                fsSettings["LEFT.R"] >> R_l;
-                fsSettings["RIGHT.R"] >> R_r;
-
-                fsSettings["LEFT.D"] >> D_l;
-                fsSettings["RIGHT.D"] >> D_r;
-
-                int rows_l = fsSettings["LEFT.height"];
-                int cols_l = fsSettings["LEFT.width"];
-                int rows_r = fsSettings["RIGHT.height"];
-                int cols_r = fsSettings["RIGHT.width"];
-               
-
-                cout << "K_l = "<< endl << " "  << K_l << endl << endl;
-                cout << "K_r = "<< endl << " "  << K_r << endl << endl;
-
-                if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
-                        rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
-                {
-                    cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
-                    
-                }else{
-                     //obtendo as novas matrizes de projeção das imagens retificadas
-                    cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,M1l,M2l);
-                    cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,M1r,M2r);
-                }
-
-                mLeftCamInfoMsg.reset(new sensor_msgs::CameraInfo());
-                mRightCamInfoMsg.reset(new sensor_msgs::CameraInfo());
-
-                mLeftCamId = "leftCamera";
-                mRightCamId = "rightCamera";
-
-                fillCameraInfo(mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamId, mRightCamId);
-                
-            }
-
-
-
-            if (!vd.open_device(video_device_name_.c_str())) {
+            if (!vd.open_device(strDevName.c_str())) {
                 std::cout << "Device not openned...\n";
-            }else{
-                CamConfig();
+            }else{                
+                // std::string file_path = "/src/stereo.yaml"; 
+                // string ros_path =  ros::package::getPath("cam_pub");
+
+                // grab the parameters
+                node_.getParam("/cam_pub_node/image_width", image_width_);
+                node_.getParam("/cam_pub_node/image_height", image_height_);
+                node_.getParam("/cam_pub_node/autofocus", autofocus_);
+                node_.getParam("/cam_pub_node/focus", focus_);
+                node_.getParam("/cam_pub_node/autoexposure", autoexposure_);
+                node_.getParam("/cam_pub_node/exposure", exposure_);
+                node_.getParam("/cam_pub_node/auto_white_balance", auto_white_balance_);
+                node_.getParam("/cam_pub_node/white_balance", white_balance_);
+                node_.getParam("/cam_pub_node/framerate", framerate_);
+
+
+                cv::FileStorage fsSettings(strSettingsFile, cv::FileStorage::READ);
+                if(!fsSettings.isOpened())
+                {
+                    cerr << "ERROR: Wrong path to settings" << endl;
+                }else{                
+                    fsSettings["LEFT.K"] >> K_l;
+                    fsSettings["RIGHT.K"] >> K_r;
+
+                    fsSettings["LEFT.P"] >> P_l;
+                    fsSettings["RIGHT.P"] >> P_r;
+
+                    fsSettings["LEFT.R"] >> R_l;
+                    fsSettings["RIGHT.R"] >> R_r;
+
+                    fsSettings["LEFT.D"] >> D_l;
+                    fsSettings["RIGHT.D"] >> D_r;
+
+                    int rows_l = fsSettings["LEFT.height"];
+                    int cols_l = fsSettings["LEFT.width"];
+                    int rows_r = fsSettings["RIGHT.height"];
+                    int cols_r = fsSettings["RIGHT.width"];
+
+                    if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
+                            rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
+                    {
+                        cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
+                        
+                    }else{
+                        
+                        mLeftCamInfoMsg.reset(new sensor_msgs::CameraInfo());
+                        mRightCamInfoMsg.reset(new sensor_msgs::CameraInfo());
+
+                        mLeftCamId = "leftCamera";
+                        mRightCamId = "rightCamera";
+
+                        fillCameraInfo(mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamId, mRightCamId);
+                        //obtendo as novas matrizes de projeção das imagens retificadas
+                        cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,M1l,M2l);
+                        cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,M1r,M2r);
+                    }
+
+                    
+                }
             }
-            
-            vd.get_image_dimension(&image_width_, &image_height_);
-            rgb = (unsigned char *)malloc(sizeof(unsigned char) * image_width_ * image_height_ * 3);
+
         }
 
         ~CamCap(){
@@ -248,6 +215,10 @@ class CamCap{
             // enum control default
             struct v4l2_queryctrl qctrl;
 
+            if(!vd.set_frame_size(image_width_, image_height_)) {
+                std::cout << "Frame size is not avaliable!\n";
+            }
+
             if( vcap::enum_control_default( vd.get_fd(), &qctrl, true) ) {
                 // printf("\n# Supported controls\n");
                 // printf("----------------------------------\n");
@@ -258,7 +229,7 @@ class CamCap{
                         if(vcap::set_control(vd.get_fd(), qctrl.id, autofocus_) < 0)
                             std::cout << "ERROR seting "<< sName <<"\n";
                     }
-                    if(sName == "Focus (absolute)" && focus_ >= 0){
+                    if(sName == "Focus (absolute)" && focus_){
                         if(vcap::set_control(vd.get_fd(), qctrl.id, focus_) < 0)
                             std::cout << "ERROR seting "<< sName <<"\n";
                     }
@@ -266,7 +237,7 @@ class CamCap{
                         if(vcap::set_control(vd.get_fd(), qctrl.id, autoexposure_) < 0)
                             std::cout << "ERROR seting "<< sName <<"\n";
                     }
-                    if(sName == "Exposure (Absolute)" && exposure_>=0){
+                    if(sName == "Exposure (Absolute)" && exposure_){
                         if(vcap::set_control(vd.get_fd(), qctrl.id, exposure_) < 0)
                             std::cout << "ERROR seting "<< sName <<"\n";
                     }
@@ -275,7 +246,7 @@ class CamCap{
                             std::cout << "ERROR seting "<< sName <<"\n";
                     }
 
-                    if(sName == "White Balance Temperature" && white_balance_>=0){
+                    if(sName == "White Balance Temperature" && white_balance_){
                         if(vcap::set_control(vd.get_fd(), qctrl.id, white_balance_) < 0)
                             std::cout << "ERROR seting "<< sName <<"\n";
                     }
@@ -354,14 +325,14 @@ class CamCap{
 
 
         void grabStereoImage(){
-            
-            if( !vd.set_frame_size(image_width_, image_height_)) {
-                std::cout << "Frame size is not avaliable!\n";
-            }
 
-            //CamConfig("/src/cam_config_stereo.json");
+            CamConfig();
 
-            int rate = framerate_;
+            int image_width, image_height;
+            vd.get_image_dimension(&image_width, &image_height);
+            rgb = (unsigned char *)malloc(sizeof(unsigned char) * image_width * image_height * 3);
+
+            // std::cout << "Image size: (" <<image_width << " , " << image_height << ")" << std::endl;
 
             string left_topic           = "/camera/left/";
             string right_topic          = "/camera/right/";
@@ -385,7 +356,7 @@ class CamCap{
             image_transport::CameraPublisher right_rect_topic  = it_.advertiseCamera(right_rect_topic_, 1);
                 
             //Define the frequency that message are send. Could be the frame rate of the camera
-            ros::Rate loop_rate(rate); 
+            ros::Rate loop_rate(framerate_); 
             vd.start();
 
             while(ros::ok()){//keep spinning loop until user presses Ctrl+c
@@ -416,11 +387,14 @@ class CamCap{
 
                 //Need to call this function to allow ROS to process incoming messages
                 //Handles the events and returns immediately
+                ROS_INFO("ImageMsg Sent.");
                 ros::spinOnce();
                 //Sleep for the rest of the cycle, to enforce the loop rate
                 loop_rate.sleep();
             }
             std::cout << "\n";
+            // vd.stop();
+            // vd.close_device();
             free(rgb);
         }
 
@@ -448,19 +422,27 @@ int main(int argc, char **argv)
 
     //Initialize new ROS node named "cam_node"
     ros::init(argc, argv, "pub_node");
+    ros::start();
 
-    CamCap camcap;
+    if(argc != 4)
+    {
+        ROS_ERROR ("Device name device type and Path to settings need to be set.");
+        ROS_ERROR ("Usage: rosrun cam_pub cam_pub_node <device_name> <device_type> (mono/stereo) <path_settings>");
+        ros::shutdown();
+        return 1;
+    }
 
-    std::cout << "DevType: " << camcap.devtype_ << std::endl;
+    CamCap camcap(argv[3], argv[1]);
 
-    if(camcap.devtype_ == "mono"){
+    string devType = argv[2];
+
+    if(devType == "mono"){
         // camcap.grabMonoImage();
-    }else if (camcap.devtype_ == "stereo")
+    }else if (devType == "stereo")
     {
         camcap.grabStereoImage();
-        
     }else{
-        cerr  << "Usage: rosrun cam_pub cam_pub_node <device_name> <device_type> (mono/stereo)" << endl;        
+        cerr  << "Usage: rosrun cam_pub cam_pub_node <device_name> <device_type> (mono/stereo) <path_settings>" << endl;        
     }
 
     //Main loop for ROS that repeatedly calls SpinOnce until the node is shut down

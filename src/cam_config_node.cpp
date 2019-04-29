@@ -80,7 +80,7 @@ int main( int argc, char ** argv ) {
 
      //Initialize new ROS node named "cam_node"
     ros::init(argc, argv, "config_node");
-    std::cout << "ENtrou" << std::endl;
+
     Glib::RefPtr<Gtk::Application> app = Gtk::Application::create();
 	App w;
 	w.show_all();

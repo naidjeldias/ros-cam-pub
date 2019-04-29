@@ -1,15 +1,19 @@
 <launch>
-    <node name="cam_pub_node" pkg="cam_pub" type="cam_pub_node" output="screen">
-        <param name="video_device" value="/dev/video1" />
-        <param name="devType" value="stereo" />
-        <param name="pixel_format" value="rgb" />
-        <param name="autofocus" value="false" />
-        <param name="focus" value="0" />
-        <param name="autoexposure" value="false" />
-        <param name="exposure" value="88" />
-        <param name="auto_white_balance" value="false" />
-        <param name="white_balance" value="4077" />
-        <param name="framerate" value="60" />
+    <node name="cam_pub_node" pkg="cam_pub" 
+        type="cam_pub_node" args="
+            /dev/video1
+            stereo
+            $(find cam_pub)/src/stereo.yaml" 
+        output="screen">
+            <param name="image_width" value="1280" />
+            <param name="image_height" value="480" />
+            <param name="pixel_format" value="rgb" />
+            <param name="autofocus" value="false" />
+            <param name="focus" value="0" />
+            <param name="autoexposure" value="false" />
+            <param name="exposure" value="39.0" />
+            <param name="auto_white_balance" value="false" />
+            <param name="white_balance" value="88.0" />
+            <param name="framerate" value="30" />
     </node>
-
 </launch>
