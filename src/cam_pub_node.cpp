@@ -326,7 +326,7 @@ class CamCap{
 
         void grabStereoImage(){
 
-            CamConfig();
+            //CamConfig();
 
             int image_width, image_height;
             vd.get_image_dimension(&image_width, &image_height);
